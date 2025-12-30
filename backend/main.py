@@ -14,7 +14,7 @@ def main_ats():
     print("Hello from backend ATS!")
     ai_competitor = AICompetitor(resume, jd, 30)
     ats_keywords = ai_competitor.extract_ats_keywords()
-    print("Extracted ATS Keywords:", ats_keywords)
+    #print("Extracted ATS Keywords:", ats_keywords)
     print()
     ats_optimized_resume = ai_competitor.generate_ats_optimized_resume()
     print("Generated ATS Optimized Resume:", ats_optimized_resume)

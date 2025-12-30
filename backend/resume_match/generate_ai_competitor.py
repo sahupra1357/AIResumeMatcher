@@ -338,7 +338,9 @@ class AICompetitor:
         semantic_score = []
         for attempt in range(max_attempts):
             score_report_str = self.ats_score_resume(resume, job_description_keywords)
+            print()
             print(f"ATS Scoring Attempt {attempt+1}: {score_report_str}")
+            print()
             
             score_report = self.parse_json_safe(score_report_str)            
                         

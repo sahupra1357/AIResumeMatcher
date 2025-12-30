@@ -14,5 +14,6 @@ dependencies = [
     "openai>=2.7.1",
     "opentelemetry-api>=1.39.1",
     "pypdf2>=3.0.1",
+    "tqdm>=4.66.0",
     "whisper>=1.1.10",
 ]

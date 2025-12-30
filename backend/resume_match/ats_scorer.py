@@ -238,7 +238,7 @@ class ATSScorer:
         ats_keywords: List[str],
         embed_fn: Callable[[str], List[float]],
     ) -> Dict[str, int]:
-        print("ats_keywords:", ats_keywords)
+        #print("ats_keywords:", ats_keywords)
 
         kw_ratio = self.keyword_match_score(resume, ats_keywords)
         kw_score = kw_ratio * 100
@@ -246,7 +246,7 @@ class ATSScorer:
         structure_penalty = self.structure_score(resume)
         structure_score = max(0, 100 + structure_penalty)
 
-        print("extracted_job_description_keywords:", job_description)
+        #print("extracted_job_description_keywords:", job_description)
 
         semantic_score = (
             self.cosine_score(

@@ -1,6 +1,8 @@
 import os
 from typing import List
 from dotenv import load_dotenv
+from tqdm import tqdm
+import time
 # Load environment variables
 load_dotenv()
 
@@ -9,7 +11,10 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
     import inspect
     caller_frame = inspect.currentframe().f_back
     caller_name = caller_frame.f_code.co_name
-    print(f"Called by method: {caller_name}")
+    
+    # Create a progress bar for the LLM call
+    # with tqdm(total=100, desc=f"🤖 {llm_type} ({caller_name})", ncols=80, bar_format='{l_bar}{bar}| {elapsed}') as pbar:
+    #     pbar.update(10)  # Starting
 
     if llm_type == "openai":
         try:
@@ -18,16 +23,20 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
 
             model = os.getenv("OPENAI_MODEL")
             client = OpenAI()
+            #pbar.update(20)  # Client initialized
 
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ]
 
+            #pbar.update(10)  # Messages prepared
             response = client.responses.create(
                 model=model,
                 input=messages,
             )
+            #pbar.update(40)  # Response received
+            
             ## Print response number of token used and execution time
             try:
                 usage = response.usage
@@ -47,17 +56,18 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
                 if hasattr(response, 'completed_at'):
                     completed_time = response.completed_at
                 total_time = (completed_time - created_time) if (hasattr(response, 'created_at') and hasattr(response, 'completed_at')) else 0
-                print(f"Total execution time: {total_time} seconds")
+                print(f"Total execution time - openai: {total_time} seconds")
 
             except Exception as e:
                 print(f"Could not retrieve usage stats: {e}")
 
-            
+            #pbar.update(20)  # Complete
             # print("Response: ", response.output_text)
             print("---------------------------------")
             print()
             return response.output_text
         except Exception as e:
+            #pbar.update(100)  # Complete on error
             print(f"Error generating LLM response: {e}")
             return "Error generating LLM response."    
     elif llm_type == "openai_reasoning":
@@ -67,16 +77,19 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
 
             model = os.getenv("OPENAI_REASONING_MODEL")
             client = OpenAI()
+            #pbar.update(20)  # Client initialized
 
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ]
 
+            #pbar.update(10)  # Messages prepared
             response = client.responses.create(
                 model=model,
                 input=messages,
             )
+            #pbar.update(40)  # Response received
 
             ## Print response number of token used and execution time
             try:
@@ -97,16 +110,18 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
                 if hasattr(response, 'completed_at'):
                     completed_time = response.completed_at
                 total_time = (completed_time - created_time) if (hasattr(response, 'created_at') and hasattr(response, 'completed_at')) else 0
-                print(f"Total execution time: {total_time} seconds")
+                print(f"Total execution time - openai reasoning: {total_time} seconds")
 
             except Exception as e:
                 print(f"Could not retrieve usage stats: {e}")
 
+            #pbar.update(20)  # Complete
             print("Response: ", response.output_text)
             print("---------------------------------")
             print()
             return response.output_text
         except Exception as e:
+            #pbar.update(100)  # Complete on error
             print(f"Error generating LLM response: {e}")
             return "Error generating LLM response."    
     elif llm_type == "claude":
@@ -114,6 +129,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
         from anthropic import Anthropic
         model=os.getenv("CLAUDE_MODEL")
         api_key=os.getenv("ANTHROPIC_API_KEY")
+        #pbar.update(30)
         client = Anthropic(api_key=api_key)
         response = client.messages.create(
             model=model,
@@ -122,6 +138,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
             max_tokens=max_tokens,
             temperature=temperature,
         )
+        #pbar.update(60)
         return response.content[0].text.strip()
     elif llm_type == "google":
         print("Using Google LLM")
@@ -130,6 +147,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
         api_key=os.getenv("GOOGLE_API_KEY")
 
         from openai import OpenAI
+        #pbar.update(30)
 
         client = OpenAI(
             api_key=api_key,
@@ -143,6 +161,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
                 {"role": "user", "content": user_prompt}
             ],
         )
+        #pbar.update(60)
 
         return response.choices[0].message.content
     elif llm_type == "deepseek":
@@ -152,6 +171,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
         api_key=os.getenv("DEEPSEEK_API_KEY")
 
         from openai import OpenAI
+        #pbar.update(30)
 
         client = OpenAI(
             api_key=api_key,
@@ -165,6 +185,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
                 {"role": "user", "content": user_prompt}
             ],
         )
+        #pbar.update(60)
 
         print("Response: ", response.choices[0].message.content)
         print("---------------------------------")
@@ -177,6 +198,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
         api_key=os.getenv("GROQ_API_KEY")
 
         from openai import OpenAI
+        #pbar.update(30)
 
         client = OpenAI(
             api_key=api_key,
@@ -190,6 +212,7 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
                 {"role": "user", "content": user_prompt}
             ],
         )
+        #pbar.update(60)
 
         return response.choices[0].message.content
     
