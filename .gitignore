@@ -17,3 +17,5 @@ output/
 PDFDataExtractor
 
 observability.py
+
+.env
