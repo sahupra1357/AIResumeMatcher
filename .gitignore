@@ -9,8 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-test_1.py
-test2.py
+test*.py
+
 
 output/
 

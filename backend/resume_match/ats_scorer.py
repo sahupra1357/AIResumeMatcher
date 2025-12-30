@@ -246,26 +246,15 @@ class ATSScorer:
         structure_penalty = self.structure_score(resume)
         structure_score = max(0, 100 + structure_penalty)
 
-        result_keywords = self.flatten_keywords({i: kw for i, kw in enumerate(ats_keywords)})
-        extracted_ats_job_keywords = ", ".join(result_keywords)
-        print("extracted_ats_job_keywords:", extracted_ats_job_keywords)
+        print("extracted_job_description_keywords:", job_description)
 
         semantic_score = (
             self.cosine_score(
                 self.extract_ats_text(resume),
-                #job_description,
-                extracted_ats_job_keywords,
+                job_description,
                 embed_fn
             ) * 100
         )
-
-        # semantic_score = (
-        #     self.semantic_score(
-        #         resume,
-        #         job_description,
-        #         embed_fn
-        #     ) * 100
-        # )
 
         overopt_penalty = self.over_optimization_penalty(
             resume,

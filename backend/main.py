@@ -1,5 +1,5 @@
 from resume_match.generate_ai_competitor import AICompetitor
-from core.test import resume, jd
+from data.input import resume, jd
 
 def main():
     print("Hello from backend!")
@@ -22,7 +22,7 @@ def main_ats():
     ## Create the resume in pdf format and add datetime stamp
     import datetime
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"./output/ats_optimized_resume_{timestamp}.pdf"
+    filename = f"./backend/output/ats_optimized_resume_{timestamp}.pdf"
     with open(filename, "w") as f:
         f.write(ats_optimized_resume)
 

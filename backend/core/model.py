@@ -16,8 +16,6 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
             print("Using OpenAI LLM")
             from openai import OpenAI
 
-            #model = "gpt-5-nano-2025-08-07" 
-            #model = "gpt-4.1-nano-2025-04-14"
             model = os.getenv("OPENAI_MODEL")
             client = OpenAI()
 
@@ -46,10 +44,8 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
 
                 if hasattr(response, 'created_at'):
                     created_time = response.created_at
-                    ##print(f"Response created at: {created_time}")
                 if hasattr(response, 'completed_at'):
                     completed_time = response.completed_at
-                    ##print(f"Response completed at: {completed_time}")
                 total_time = (completed_time - created_time) if (hasattr(response, 'created_at') and hasattr(response, 'completed_at')) else 0
                 print(f"Total execution time: {total_time} seconds")
 
@@ -69,8 +65,6 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
             print("Using OpenAI Reasoning LLM")
             from openai import OpenAI
 
-            #model = "gpt-5-nano-2025-08-07" 
-            #model = "gpt-4.1-nano-2025-04-14"
             model = os.getenv("OPENAI_REASONING_MODEL")
             client = OpenAI()
 
@@ -83,9 +77,6 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
                 model=model,
                 input=messages,
             )
-
-            # if caller_name == "extract_ats_keywords":
-            #     print("response --> ", response)
 
             ## Print response number of token used and execution time
             try:
@@ -103,10 +94,8 @@ def generate_llm_response(system_prompt, user_prompt, llm_type="openai", tempera
 
                 if hasattr(response, 'created_at'):
                     created_time = response.created_at
-                    ##print(f"Response created at: {created_time}")
                 if hasattr(response, 'completed_at'):
                     completed_time = response.completed_at
-                    ##print(f"Response completed at: {completed_time}")
                 total_time = (completed_time - created_time) if (hasattr(response, 'created_at') and hasattr(response, 'completed_at')) else 0
                 print(f"Total execution time: {total_time} seconds")
 

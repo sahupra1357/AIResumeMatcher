@@ -9,7 +9,7 @@ import numpy as np
 sys.path.append(str(Path(__file__).parent.parent))
 
 from core.model import generate_llm_response, generate_embedding
-from core.test import resume, jd
+from data.input import resume, jd
 from resume_match.ats_scorer import ATSScorer
 
 from .observability import init_observability
@@ -156,7 +156,8 @@ class AICompetitor:
 
         #ats_keywords = self.extract_ats_keywords()
         ats_keywords_raw = self.extract_ats_keywords()
-        ats_keywords = self.normalize_ats_keywords(self.parse_json_safe(ats_keywords_raw))        
+        self.ats_keywords = self.normalize_ats_keywords(self.parse_json_safe(ats_keywords_raw)) 
+        print("Normalized ATS Keywords:", self.ats_keywords)    
         factors = self.extract_factors()
 
         SYSTEM_PROMPT = f"""
@@ -197,7 +198,7 @@ class AICompetitor:
         {factors}
 
         ATS KEYWORDS:
-        {ats_keywords}
+        {self.ats_keywords}
         """
 
         USER_PROMPT = f"""
@@ -286,47 +287,17 @@ class AICompetitor:
 
         return issues
 
-    def ats_score_resume(self, resume_text):
-        # SYSTEM_PROMPT = """
-        # You are an ATS scoring engine.
-
-        # Score the resume against the job description.
-
-        # Evaluate:
-        # - Keyword match
-        # - Section structure
-        # - Skill coverage
-        # - Over-optimization risk
-        # - Parsing friendliness
-
-        # Output STRICT JSON:
-        # {
-        # "score": 0-100,
-        # "missing_keywords": [],
-        # "overused_keywords": [],
-        # "structure_issues": []
-        # }
-        # """
-
-        # USER_PROMPT = f"""
-        # Resume:
-        # {resume_text}
-
-        # Job Description:
-        # {self.job_descriptiom}
-        # """
-
-        # return generate_llm_response(SYSTEM_PROMPT, USER_PROMPT, llm_type="openai_reasoning")
-
+    def ats_score_resume(self, resume_text, job_description_keywords):
         ats_scorer = ATSScorer()
-        final_score = ats_scorer.final_ats_score(
-            resume=resume_text,
-            job_description=self.job_descriptiom,
-            ats_keywords=list(self.normalize_ats_keywords(
+        ats_keywords_str= self.ats_keywords if self.ats_keywords else list(self.normalize_ats_keywords(
                 self.parse_json_safe(
                     self.extract_ats_keywords()
                 )
-            ).values()),
+            ).values())
+        final_score = ats_scorer.final_ats_score(
+            resume=resume_text,
+            job_description=job_description_keywords,
+            ats_keywords=ats_keywords_str,
             embed_fn=generate_embedding
         )
 
@@ -361,18 +332,14 @@ class AICompetitor:
         if regex_issues:
             resume = self.improve_resume_fixed_ats_issues(regex_issues, resume, min_score)
 
+        job_description_keywords = self.flatten_keywords_str(self.ats_keywords)
+        print("Job Description Keywords for ATS Optimization:", job_description_keywords)
+        
         semantic_score = []
         for attempt in range(max_attempts):
-            score_report_str = self.ats_score_resume(resume)
+            score_report_str = self.ats_score_resume(resume, job_description_keywords)
             print(f"ATS Scoring Attempt {attempt+1}: {score_report_str}")
             
-            # Parse JSON string to dictionary
-            # try:
-            #     score_report = json.loads(score_report_str)
-            # except json.JSONDecodeError:
-            #     print(f"Failed to parse score report: {score_report_str}")
-            #     continue
-
             score_report = self.parse_json_safe(score_report_str)            
                         
             if score_report.get("final_score", 0) >= min_score:
@@ -383,33 +350,13 @@ class AICompetitor:
                 # If semantic score is not improving, break early
                 if semantic_score[-1] - semantic_score[-2] < 0.02:
                     print("Semantic score not improving, stopping attempts.")
+                    print()
                     return resume
 
-            # Inject feedback back into generation
-            # SYSTEM_PROMPT = f"""
-            # {self.RESUME_OUTPUT_CONTRACT}
-            # You are an ATS resume improvement engine.
-            # Improve the resume based on the following ATS score report:
-
-            # Missing keywords:
-            # {score_report.get('missing_keywords', [])}
-
-            # Overused keywords:
-            # {score_report.get('overused_keywords', [])}
-
-            # Structure issues:
-            # {score_report.get('structure_issues', [])}
-
-            # Maintain realism and ATS safety.
-
-            # You are fixing an ATS resume.
-            # Apply ONLY the changes required.
-            # Do not explain changes.
-            # """
 
             semantic_gaps = self.semantic_gap_terms(
                 resume,
-                self.job_descriptiom,
+                job_description_keywords,
                 generate_embedding
             )
 
@@ -467,6 +414,13 @@ class AICompetitor:
                 if len(kw.split()) <= 4:   # atomic only
                     normalized[group].append(kw)
         return normalized    
+
+    def flatten_keywords_str(self, grouped_keywords):
+        flat = []
+        for group in grouped_keywords.values():
+            flat.extend(group)
+        keyword_list = list(set(flat))
+        return ", ".join(keyword_list)
     
     def parse_json_safe(self, json_string):
         import json

@@ -1,9 +1,9 @@
 resume = """
-Cristian Garcia
+John Doe
 Machine Learning Engineer
-cgarcia.e88@gmail.com
-@cgarciae88
-@cgarciae
+johndoe@example.com
+@johndoe
+@johndoe
 Currently Machine Learning Engineer at Quansight
 Author of Elegy and Treex
 Specialized in Machine Learning, Deep Learning, MLOps, Open
