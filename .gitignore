@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+test_1.py
+test2.py
+
+output/
+
+PDFDataExtractor
+
+observability.py
