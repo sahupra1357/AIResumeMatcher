@@ -17,10 +17,10 @@ from .observability import init_observability
 init_observability()
 
 class AICompetitor:
-    def __init__(self, resume_text, job_descriptiom, defficulty_level):
+    def __init__(self, resume_text, job_description, difficulty_level):
         self.resume_text = resume_text
-        self.job_descriptiom = job_descriptiom
-        self.defficulty_level = int(defficulty_level)
+        self.job_description = job_description
+        self.difficulty_level = int(difficulty_level)
         self.generated_resume = None
         self.factors = None
         self.ats_keywords = None
@@ -41,7 +41,7 @@ class AICompetitor:
         
         SYSTEM_PROMPT = """
         You are an expert job analysis AI specialist in distilling job description to their core requirements.  
-        Your task is analyze the job description and extract 5 most critical factors that will determmine success in this role.Focous on extracting:
+        Your task is analyze the job description and extract most critical factors that will determmine success in this role.Focous on extracting:
               1. Required technical skills: the specific technical abilities and knowledge in domain for the position.
               2. Key responsibilties: The main tasks and responsibilities that form core of the job.
         Only include specific and relevant terms (e.g 'machine learning', 'data analysis', 'project management', 'cloud computing', 'cybersecurity') that are directly related to the job role.Avoid vague or general tems like 'team player' or 'communication skills'.
@@ -49,8 +49,8 @@ class AICompetitor:
         """
 
         USER_PROMPT = f"""
-        Extract 5 key factors (each max 2 words) that most strongly infuence the job role describe below.and
-        Job Description: {self.job_descriptiom}
+        Extract all key factors (each max 2 words) that most strongly infuence the job role describe below.and
+        Job Description: {self.job_description}
         """
 
         self.factors = generate_llm_response(SYSTEM_PROMPT, USER_PROMPT, llm_type="openai_reasoning")
@@ -58,16 +58,16 @@ class AICompetitor:
         return self.factors
     
     def determine_enhancement(self):
-        if self.defficulty_level <= 20:
-            self.enhancement_descrition = "silghtly more impressive"
+        if self.difficulty_level <= 20:
+            self.enhancement_description = "slightly more impressive"
             self.intensity = "modest"
-        elif self.defficulty_level <= 40:
+        elif self.difficulty_level <= 40:
             self.enhancement_descrition = "moderately more impressive"
             self.intensity = "significant"
-        elif self.defficulty_level <= 60:
+        elif self.difficulty_level <= 60:
             self.enhancement_descrition = "substantially more impressive"
             self.intensity = "extensive"
-        elif self.defficulty_level <= 80:
+        elif self.difficulty_level <= 80:
             self.enhancement_descrition = "dramatically more impressive"
             self.intensity = "comprehensive"
         return (self.enhancement_descrition, self.intensity)
@@ -83,7 +83,7 @@ class AICompetitor:
         SYSTEM_PROMPT = f"""
         You are an expert resume enhancer AI specialist tasked with creating a stronger competitor version of candidate's resume.
 
-        Your job is to create a resume that is {self.enhancement_descrition} than the original (approximately {self.defficulty_level}% stronger) by:
+        Your job is to create a resume that is {self.enhancement_descrition} than the original (approximately {self.difficulty_level}% stronger) by:
         1. Enhance technical skills with {self.intensity} additions of relevant technologies and framworks.
         2. Updating project descriptions with more advanced concept and technical depth
         3. Making work experience more impactful wirh better metrics and higher achivment levels.
@@ -95,16 +95,16 @@ class AICompetitor:
         - Do not add any fictional jobs or degrees
         - Maintain the same job titles and employeers but enhance accomplishments
         - Focus particularly on the key factors identified from the job description.
-        - The enhanced resume should be realisitc for someone with {self.defficulty_level}% more expertise.
+        - The enhanced resume should be realisitc for someone with {self.difficulty_level}% more expertise.
         - Preserve the original format and structure of the resume. 
         """
 
         USER_PROMPT = f"""
         I need you to create a more competitive version of this candidate's resume.
         Candidate's Resume: {self.resume_text}
-        Job Description: {self.job_descriptiom}
+        Job Description: {self.job_description}
         Key Factors to focus enhancement on (these are the most important for the job) : {self.factors}
-        Please create resume that is approximately {self.defficulty_level}% stronger than the original, focusing especially the ares related to key factors.
+        Please create resume that is approximately {self.difficulty_level}% stronger than the original, focusing especially the ares related to key factors.
         Retun ONLY the enhanced resume with fixed header above and formated consistently with the original resume structure.
         """
 
@@ -113,13 +113,16 @@ class AICompetitor:
         return self.generated_resume
 
     ### ATS Enhancement Methods ###
-    def extract_ats_keywords(self):
+    def extract_ats_keywords(self, raw_text=None):
         if hasattr(self, "ats_keywords") and self.ats_keywords:
             return self.ats_keywords
 
         SYSTEM_PROMPT = """
-        You are an ATS keyword extraction engine.
-
+        You are a ATS keyword engine. Convert the following raw job posting or resume text into exactly the JSON schema below:
+        — Do not add any extra fields or prose.
+        — Do not change the structure or key names; output only valid JSON matching the schema.
+        - Do not format the response in Markdown or any other format. Just output raw JSON.
+        
         Extract keywords EXACTLY as an ATS would index them.
 
         Output MUST be valid JSON:
@@ -141,7 +144,8 @@ class AICompetitor:
 
         USER_PROMPT = f"""
         Job Description:
-        {self.job_descriptiom}
+        {raw_text}
+        Note: Please output only a valid JSON matching the EXACT schema with no surrounding commentary.
         """
 
         self.ats_keywords = generate_llm_response(SYSTEM_PROMPT, USER_PROMPT, llm_type="openai_reasoning")
@@ -155,19 +159,23 @@ class AICompetitor:
             self.determine_enhancement()
 
         #ats_keywords = self.extract_ats_keywords()
-        ats_keywords_raw = self.extract_ats_keywords()
+        ats_keywords_raw = self.extract_ats_keywords(self.job_description)
         self.ats_keywords = self.normalize_ats_keywords(self.parse_json_safe(ats_keywords_raw)) 
         print("Normalized ATS Keywords:", self.ats_keywords)    
         factors = self.extract_factors()
 
         SYSTEM_PROMPT = f"""
         {self.RESUME_OUTPUT_CONTRACT}
-        You are an ATS-safe resume enhancement engine.
+        You are an ATS-safe resume enhancer AI specialist tasked with creating a stronger competitor version of candidate's resume.
 
         GOAL:
-        Create a resume that is {self.enhancement_descrition}
-        (~{self.defficulty_level}% stronger) WITHOUT triggering ATS rejection.
-
+        Your job is to create a resume that is {self.enhancement_descrition} than the original (approximately {self.difficulty_level}% stronger) WITHOUT triggering ATS rejection :
+        1. Enhance technical skills with {self.intensity} additions of relevant technologies and framworks.
+        2. Updating project descriptions with more advanced concept and technical depth
+        3. Making work experience more impactful wirh better metrics and higher achivment levels.
+        4. Improve the overall impression of experties, seniority and capabilities.
+        5. Tailor the resume to better align with the job description provided.
+        
         ATS STRUCTURE (MANDATORY ORDER):
         SUMMARY
         SKILLS
@@ -176,12 +184,18 @@ class AICompetitor:
         EDUCATION
         CERTIFICATIONS (only if present)
 
-        ATS RULES (STRICT):
+        IMPORTANT RULES (STRICT):
         - Use standard section headers exactly as written
         - Skills must be listed as bullet or comma-separated lists
         - No tables, icons, emojis, columns, or special characters
         - Bullets must start with action verbs
         - Do not change job titles or employers
+        - Keep the same basic career trjectory and eduction
+        - Do not add any fictional jobs or degrees
+        - Maintain the same job titles and employeers but enhance accomplishments
+        - Focus particularly on the key factors identified from the job description.
+        - The enhanced resume should be realisitc for someone with {self.difficulty_level}% more expertise.
+        - Preserve the original format and structure of the resume. 
 
         KEYWORD COVERAGE REQUIREMENTS:
         - Every ATS keyword must appear at least once
@@ -206,7 +220,7 @@ class AICompetitor:
         {resume_text if resume_text else self.resume_text}
 
         Job Description:
-        {self.job_descriptiom}
+        {self.job_description}
 
         Return ONLY the enhanced resume.
         Preserve original formatting and section layout.

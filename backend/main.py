@@ -1,4 +1,5 @@
 from resume_match.generate_ai_competitor import AICompetitor
+from resume_match.enhance_resume import AIResumeMatcher
 from data.input import resume, jd
 
 def main():
@@ -13,9 +14,9 @@ def main():
 def main_ats():
     print("Hello from backend ATS!")
     ai_competitor = AICompetitor(resume, jd, 30)
-    ats_keywords = ai_competitor.extract_ats_keywords()
-    #print("Extracted ATS Keywords:", ats_keywords)
-    print()
+    # ats_keywords = ai_competitor.extract_ats_keywords()
+    # #print("Extracted ATS Keywords:", ats_keywords)
+    # print()
     ats_optimized_resume = ai_competitor.generate_ats_optimized_resume()
     print("Generated ATS Optimized Resume:", ats_optimized_resume)
 
@@ -29,3 +30,4 @@ def main_ats():
 if __name__ == "__main__":
     #main()
     main_ats()
+    #main_resume()

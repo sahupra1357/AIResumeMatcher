@@ -19,3 +19,5 @@ PDFDataExtractor
 observability.py
 
 .env
+
+enhance_resume.py
