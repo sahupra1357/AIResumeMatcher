@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-
+from typing import List, Dict
 
 # Add parent directory to path to import core modules
 sys.path.append(str(Path(__file__).parent.parent))
@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from core.model import generate_llm_response, generate_embedding
 from data.input import resume, jd
 from resume_match.ats_scorer import ATSScorer
+from resume_match.skill_comparison import SkillComparison
 
 from .observability import init_observability
 # Initialize observability
@@ -23,7 +24,7 @@ class AICompetitor:
         self.difficulty_level = int(difficulty_level)
         self.generated_resume = None
         self.factors = None
-        self.ats_keywords = None
+        self.ats_keywords = self.extract_ats_keywords(self.job_description)
         self.RESUME_OUTPUT_CONTRACT = """
                 CRITICAL OUTPUT RULES (ABSOLUTE):
                 - Return ONLY the resume text
@@ -34,6 +35,7 @@ class AICompetitor:
                 - End with the last resume line
                 - If unsure, still output ONLY the resume
                 """
+        self.skill_comparison = SkillComparison(resume_text, job_description, self.ats_keywords)
 
     def extract_factors(self):
         if self.factors:
@@ -113,7 +115,7 @@ class AICompetitor:
         return self.generated_resume
 
     ### ATS Enhancement Methods ###
-    def extract_ats_keywords(self, raw_text=None):
+    def extract_ats_keywords(self, raw_text):
         if hasattr(self, "ats_keywords") and self.ats_keywords:
             return self.ats_keywords
 
@@ -148,8 +150,9 @@ class AICompetitor:
         Note: Please output only a valid JSON matching the EXACT schema with no surrounding commentary.
         """
 
-        self.ats_keywords = generate_llm_response(SYSTEM_PROMPT, USER_PROMPT, llm_type="openai_reasoning")
-        return self.ats_keywords
+        ats_keywords_raw = generate_llm_response(SYSTEM_PROMPT, USER_PROMPT, llm_type="openai_reasoning")
+        ats_keywords = self.normalize_ats_keywords(self.parse_json_safe(ats_keywords_raw))
+        return ats_keywords
 
     def generate_resume_ats_safe(self, resume_text=None):
         if self.generated_resume:
@@ -158,10 +161,8 @@ class AICompetitor:
         if not hasattr(self, 'enhancement_descrition'):
             self.determine_enhancement()
 
-        #ats_keywords = self.extract_ats_keywords()
-        ats_keywords_raw = self.extract_ats_keywords(self.job_description)
-        self.ats_keywords = self.normalize_ats_keywords(self.parse_json_safe(ats_keywords_raw)) 
         print("Normalized ATS Keywords:", self.ats_keywords)    
+        print()
         factors = self.extract_factors()
 
         SYSTEM_PROMPT = f"""
@@ -346,9 +347,12 @@ class AICompetitor:
         if regex_issues:
             resume = self.improve_resume_fixed_ats_issues(regex_issues, resume, min_score)
 
-        job_description_keywords = self.flatten_keywords_str(self.ats_keywords)
-        print("Job Description Keywords for ATS Optimization:", job_description_keywords)
-        
+        job_description_keywords_list = self.flatten_keywords_str(self.ats_keywords)
+        job_description_keywords = ", ".join(job_description_keywords_list)
+        print("Job Description Keywords for ATS Optimization:", job_description_keywords_list)
+
+        generate_recommendation = self.skill_comparison.generate_skill_comparison()
+
         semantic_score = []
         for attempt in range(max_attempts):
             score_report_str = self.ats_score_resume(resume, job_description_keywords)
@@ -359,7 +363,7 @@ class AICompetitor:
             score_report = self.parse_json_safe(score_report_str)            
                         
             if score_report.get("final_score", 0) >= min_score:
-                return resume
+                return resume, generate_recommendation
 
             semantic_score.append(score_report.get("semantic_score", 0))
             if attempt > 0:
@@ -367,7 +371,7 @@ class AICompetitor:
                 if semantic_score[-1] - semantic_score[-2] < 0.02:
                     print("Semantic score not improving, stopping attempts.")
                     print()
-                    return resume
+                    return resume, generate_recommendation
 
 
             semantic_gaps = self.semantic_gap_terms(
@@ -377,6 +381,7 @@ class AICompetitor:
             )
 
             print("Semantic Gaps Identified:", semantic_gaps)
+            print()
 
             SYSTEM_PROMPT = f"""
             {self.RESUME_OUTPUT_CONTRACT}
@@ -405,7 +410,7 @@ class AICompetitor:
             resume = generate_llm_response(SYSTEM_PROMPT, resume)
             #resume = self.generate_resume_ats_safe(resume)
 
-        return resume
+        return resume, generate_recommendation
 
     def improve_resume_fixed_ats_issues(self, regex_issue, resume, min_score=85):
         SYSTEM_PROMPT = f"""
@@ -436,7 +441,8 @@ class AICompetitor:
         for group in grouped_keywords.values():
             flat.extend(group)
         keyword_list = list(set(flat))
-        return ", ".join(keyword_list)
+        #return ", ".join(keyword_list)
+        return keyword_list
     
     def parse_json_safe(self, json_string):
         import json
@@ -456,7 +462,8 @@ class AICompetitor:
         
         # For any other type, return empty dict
         return {}
-    
+
+
 if __name__ == "__main__":
     ai_competitor = AICompetitor(resume, jd, 30)
     factors = ai_competitor.extract_factors()
