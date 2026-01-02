@@ -11,89 +11,115 @@ def text_to_pdf(text, output_filename):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_margins(left=15, top=15, right=15)
+    pdf.set_margins(left=20, top=20, right=20)
     
     # Set font
     pdf.set_font("Helvetica", size=10)
     
     # Process text line by line
     lines = text.split('\n')
+    lines_written = 0
+    lines_skipped = 0
     
-    for line in lines:
-        # Skip very long lines or split them
-        if len(line) > 500:
-            # Split very long lines into chunks
-            chunks = [line[i:i+100] for i in range(0, len(line), 100)]
-            for chunk in chunks:
-                pdf.multi_cell(0, 5, chunk)
+    for line_num, line in enumerate(lines, 1):
+        # Skip empty lines
+        if not line.strip():
+            pdf.ln(2)
             continue
-            
-        # Handle headers (lines with # or all caps)
-        if line.startswith('#'):
-            # Markdown headers
-            if line.startswith('###'):
-                pdf.set_font("Helvetica", 'B', 10)
-                line = line.replace('###', '').strip()
-            elif line.startswith('##'):
-                pdf.set_font("Helvetica", 'B', 11)
-                line = line.replace('##', '').strip()
-            elif line.startswith('#'):
-                pdf.set_font("Helvetica", 'B', 13)
-                line = line.replace('#', '').strip()
-            try:
-                pdf.multi_cell(0, 6, line)
-                pdf.ln(2)
-            except:
-                pass  # Skip problematic lines
-            pdf.set_font("Helvetica", size=10)
-        elif line.strip().isupper() and len(line.strip()) > 0 and len(line.strip()) < 50:
-            # All caps headers
-            pdf.set_font("Helvetica", 'B', 11)
-            try:
-                pdf.multi_cell(0, 6, line)
-                pdf.ln(1)
-            except:
-                pass
-            pdf.set_font("Helvetica", size=10)
-        elif line.strip().startswith('*') or line.strip().startswith('-'):
-            # Bullet points
-            bullet_text = line.strip()[1:].strip()
-            try:
-                pdf.set_x(20)  # Indent
-                pdf.multi_cell(0, 5, f"• {bullet_text}")
-            except:
-                # Fallback for problematic lines
-                try:
-                    pdf.set_x(20)
-                    pdf.multi_cell(0, 5, bullet_text[:200] + "...")
-                except:
-                    pass
-        elif line.strip():
-            # Regular text - handle long lines
-            try:
-                if len(line) > 200:
-                    # Break long lines
-                    words = line.split()
-                    current_line = ""
-                    for word in words:
-                        if len(current_line + word) < 100:
-                            current_line += word + " "
-                        else:
-                            if current_line:
-                                pdf.multi_cell(0, 5, current_line.strip())
-                            current_line = word + " "
-                    if current_line:
-                        pdf.multi_cell(0, 5, current_line.strip())
+        
+        # Clean line - remove tabs and problematic characters
+        clean_line = line.replace('\t', '    ').encode('latin-1', errors='ignore').decode('latin-1').strip()
+        
+        if not clean_line:
+            continue
+        
+        # CRITICAL: Reset X position to left margin before each line
+        pdf.set_x(pdf.l_margin)
+        
+        # Handle very long lines by wrapping them
+        if len(clean_line) > 85:
+            words = clean_line.split()
+            wrapped_lines = []
+            current = ""
+            for word in words:
+                test_line = current + " " + word if current else word
+                if len(test_line) < 80:
+                    current = test_line
                 else:
-                    pdf.multi_cell(0, 5, line)
-            except:
-                pass  # Skip problematic lines
+                    if current:
+                        wrapped_lines.append(current)
+                    current = word
+            if current:
+                wrapped_lines.append(current)
+            
+            # Process wrapped lines
+            for wrapped in wrapped_lines:
+                try:
+                    pdf.set_x(pdf.l_margin)  # Reset position
+                    pdf.multi_cell(0, 5, wrapped)
+                    lines_written += 1
+                except Exception as e:
+                    print(f"Line {line_num} wrapped failed: {str(e)[:50]}")
+                    lines_skipped += 1
+            continue
+        
+        # Handle headers (lines with # or all caps)
+        if clean_line.startswith('#'):
+            # Markdown headers
+            level = clean_line.count('#', 0, 3)
+            header_text = clean_line.lstrip('#').strip()
+            try:
+                pdf.set_x(pdf.l_margin)
+                if level == 1:
+                    pdf.set_font("Helvetica", 'B', 13)
+                elif level == 2:
+                    pdf.set_font("Helvetica", 'B', 11)
+                else:
+                    pdf.set_font("Helvetica", 'B', 10)
+                pdf.multi_cell(0, 6, header_text)
+                pdf.ln(2)
+                pdf.set_font("Helvetica", size=10)
+                lines_written += 1
+            except Exception as e:
+                print(f"Header line {line_num} failed: {str(e)[:50]}")
+                pdf.set_font("Helvetica", size=10)
+                lines_skipped += 1
+        elif clean_line.isupper() and 3 < len(clean_line) < 50:
+            # All caps headers
+            try:
+                pdf.set_x(pdf.l_margin)
+                pdf.set_font("Helvetica", 'B', 11)
+                pdf.multi_cell(0, 6, clean_line)
+                pdf.ln(1)
+                pdf.set_font("Helvetica", size=10)
+                lines_written += 1
+            except Exception as e:
+                print(f"Caps header line {line_num} failed: {str(e)[:50]}")
+                pdf.set_font("Helvetica", size=10)
+                lines_skipped += 1
+        elif clean_line.startswith(('*', '-')):
+            # Bullet points - use simple bullet without special character
+            bullet_text = clean_line[1:].strip()
+            try:
+                pdf.set_x(pdf.l_margin + 5)  # Slight indent
+                pdf.multi_cell(0, 5, f"- {bullet_text}")  # Use dash instead of bullet
+                lines_written += 1
+            except Exception as e:
+                print(f"Bullet line {line_num} failed: {str(e)[:50]}")
+                lines_skipped += 1
         else:
-            # Empty line
-            pdf.ln(3)
+            # Regular text
+            try:
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(0, 5, clean_line)
+                lines_written += 1
+            except Exception as e:
+                print(f"Regular line {line_num} failed: {str(e)[:50]} | Content: {clean_line[:50]}")
+                lines_skipped += 1
     
     # Save PDF
     pdf.output(output_filename)
+    print(f"\nPDF Statistics: {lines_written} lines written, {lines_skipped} lines skipped out of {len(lines)} total")
 
 def main():
     print("Hello from backend!")
