@@ -13,7 +13,7 @@ from data.input import resume, jd
 from resume_match.ats_scorer import ATSScorer
 from resume_match.skill_comparison import SkillComparison
 
-from .observability import init_observability
+from resume_match.observability import init_observability
 # Initialize observability
 init_observability()
 

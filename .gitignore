@@ -21,8 +21,8 @@ output/
 
 PDFDataExtractor
 
-observability.py
-
 .env
 
 enhance_resume.py
+*.md
+input_orig.py
