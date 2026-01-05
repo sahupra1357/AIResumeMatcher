@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Node modules
+node_modules/
+
 # macOS system files
 .DS_Store
 .AppleDouble
@@ -26,3 +29,5 @@ PDFDataExtractor
 enhance_resume.py
 *.md
 input_orig.py
+
+frontend/node_modules/*
