@@ -26,16 +26,18 @@ app = FastAPI(
 )
 
 # Configure CORS
-origins = [
-    "http://localhost:5173",  # Vite default
-    "http://localhost:3000",  # Alternative React port
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000"
-]
+# origins = [
+#     "http://localhost:5173",  # Vite default
+#     "http://localhost:3000",  # Alternative React port
+#     "http://127.0.0.1:5173",
+#     "http://127.0.0.1:3000"
+# ]
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
