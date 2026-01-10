@@ -26,18 +26,42 @@ app = FastAPI(
 )
 
 # Configure CORS
-# origins = [
-#     "http://localhost:5173",  # Vite default
-#     "http://localhost:3000",  # Alternative React port
-#     "http://127.0.0.1:5173",
-#     "http://127.0.0.1:3000"
-# ]
+ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "*")
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# Parse origins and strip whitespace
+if ALLOWED_ORIGINS_STR == "*":
+    ALLOWED_ORIGINS = ["*"]
+    ALLOW_ORIGIN_REGEX = None
+else:
+    # Split by comma and strip whitespace from each origin
+    origins_list = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",")]
+
+    # Separate wildcard patterns from explicit origins
+    explicit_origins = [o for o in origins_list if "*" not in o]
+    wildcard_patterns = [o for o in origins_list if "*" in o]
+
+    # Convert wildcard patterns to regex
+    if wildcard_patterns:
+        # Convert patterns like https://*.vercel.app to regex
+        regex_patterns = []
+        for pattern in wildcard_patterns:
+            # Escape dots and convert * to regex pattern
+            regex_pattern = pattern.replace(".", r"\.").replace("*", r"[a-zA-Z0-9\-]+")
+            regex_patterns.append(regex_pattern)
+        ALLOW_ORIGIN_REGEX = "|".join(regex_patterns)
+    else:
+        ALLOW_ORIGIN_REGEX = None
+
+    ALLOWED_ORIGINS = explicit_origins if explicit_origins else ["*"]
+
+logger.info(f"CORS Configuration:")
+logger.info(f"  Allowed Origins: {ALLOWED_ORIGINS}")
+logger.info(f"  Origin Regex: {ALLOW_ORIGIN_REGEX}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
