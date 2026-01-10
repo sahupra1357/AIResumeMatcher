@@ -74,10 +74,9 @@ function App() {
           </p>
         </div>
 
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column - Upload Section */}
-          <div>
+        {/* Main Content - Input Section */}
+        {!results && (
+          <div className="max-w-4xl mx-auto">
             <UploadSection
               onFileChange={handleFileChange}
               onJobDescriptionChange={handleJobDescriptionChange}
@@ -128,36 +127,51 @@ function App() {
                 <li>Get an AI-enhanced resume optimized for the job</li>
               </ol>
             </div>
-          </div>
 
-          {/* Right Column - Results Section */}
-          <div>
+            {/* Loading State */}
             {loading && (
-              <div className="card flex flex-col items-center justify-center py-12">
+              <div className="card flex flex-col items-center justify-center py-12 mt-6">
                 <Loader2 className="w-16 h-16 text-primary-600 animate-spin mb-4" />
                 <p className="text-lg font-medium text-gray-700">Analyzing your resume...</p>
                 <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
               </div>
             )}
-
-            {!loading && !results && !error && (
-              <div className="card flex flex-col items-center justify-center py-12 text-center">
-                <FileCheck className="w-16 h-16 text-gray-400 mb-4" />
-                <p className="text-lg font-medium text-gray-600">No results yet</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Upload your resume and job description to get started
-                </p>
-              </div>
-            )}
-
-            {results && <ResultsSection results={results} />}
           </div>
-        </div>
+        )}
 
-        {/* Enhanced Resume Section - Full Width Below */}
-        {results && results.enhanced_resume && (
-          <div className="mt-8">
-            <EnhancedResume results={results} />
+        {/* Results Layout - 2 Column Grid */}
+        {results && !loading && (
+          <div>
+            {/* Action Buttons at Top */}
+            <div className="flex gap-4 mb-6">
+              <button
+                onClick={handleAnalyze}
+                disabled={loading || !resumeFile || !jobDescription}
+                className="btn-primary flex items-center justify-center gap-2"
+              >
+                Re-analyze
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={loading}
+                className="btn-secondary"
+              >
+                New Analysis
+              </button>
+            </div>
+
+            {/* 2 Column Grid for Results */}
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Left Column - Analysis Results */}
+              <div>
+                <ResultsSection results={results} />
+              </div>
+
+              {/* Right Column - Enhanced Resume */}
+              <div>
+                {results.enhanced_resume && <EnhancedResume results={results} />}
+              </div>
+            </div>
           </div>
         )}
 
